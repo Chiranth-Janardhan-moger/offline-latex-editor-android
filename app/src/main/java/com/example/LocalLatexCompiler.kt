@@ -1,13 +1,98 @@
 package com.example
 
 import android.content.Context
-import android.util.Log
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.ServerSocket
+import java.net.Socket
+import java.net.URL
 import java.util.zip.ZipInputStream
+import kotlin.concurrent.thread
 
 object LocalLatexCompiler {
+
+    private var proxyServerSocket: ServerSocket? = null
+    private var proxyPort: Int = -1
+
+    @Synchronized
+    private fun getProxyPort(): Int {
+        if (proxyServerSocket != null && !proxyServerSocket!!.isClosed) {
+            return proxyPort
+        }
+        val serverSocket = ServerSocket(0)
+        proxyServerSocket = serverSocket
+        proxyPort = serverSocket.localPort
+        
+        thread {
+            while (!serverSocket.isClosed) {
+                try {
+                    val client = serverSocket.accept()
+                    thread { handleProxyClient(client) }
+                } catch (e: Exception) {
+                    break
+                }
+            }
+        }
+        return proxyPort
+    }
+
+    private fun handleProxyClient(client: Socket) {
+        try {
+            val input = BufferedReader(InputStreamReader(client.getInputStream()))
+            val firstLine = input.readLine() ?: return
+            val parts = firstLine.split(" ")
+            if (parts.size < 2) return
+            val method = parts[0]
+            val path = parts[1]
+            
+            val headers = mutableMapOf<String, String>()
+            while (true) {
+                val line = input.readLine()
+                if (line.isNullOrEmpty()) break
+                val split = line.indexOf(":")
+                if (split > 0) {
+                    headers[line.substring(0, split).trim()] = line.substring(split + 1).trim()
+                }
+            }
+            
+            val targetUrl = URL("https://relay.fullyjustified.net" + path)
+            val connection = targetUrl.openConnection() as HttpURLConnection
+            connection.requestMethod = method
+            connection.instanceFollowRedirects = true
+            
+            for ((k, v) in headers) {
+                if (!k.equals("Host", ignoreCase = true) && !k.equals("Connection", ignoreCase = true)) {
+                    connection.setRequestProperty(k, v)
+                }
+            }
+            connection.setRequestProperty("Connection", "close")
+            
+            val responseCode = connection.responseCode
+            val out = client.getOutputStream()
+            out.write("HTTP/1.1 $responseCode OK\r\n".toByteArray())
+            
+            for ((k, vList) in connection.headerFields) {
+                if (k != null && !k.equals("Transfer-Encoding", ignoreCase = true) && !k.equals("Connection", ignoreCase = true)) {
+                    for (v in vList) {
+                        out.write("$k: $v\r\n".toByteArray())
+                    }
+                }
+            }
+            out.write("Connection: close\r\n\r\n".toByteArray())
+            
+            if (method != "HEAD") {
+                val inputStream = if (responseCode >= 400) connection.errorStream else connection.inputStream
+                inputStream?.copyTo(out)
+            }
+            out.flush()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            try { client.close() } catch (_: Exception) {}
+        }
+    }
 
     fun compile(context: Context, source: String, logBuilder: StringBuilder): File {
         logBuilder.append("[INFO] Starting true offline compilation using native Tectonic engine...\n")
@@ -74,12 +159,12 @@ object LocalLatexCompiler {
         logBuilder.append("[INFO] Executing Tectonic engine (dynamic online/offline)...\n")
         
         try {
-            // We MUST use --only-cached. Tectonic is statically compiled with musl and rustls,
-            // which completely fails to read Android CA certs, causing an unrecoverable panic
-            // if it tries to hit the internet. We rely entirely on our 600+ file pre-warmed cache.
+            // We use our local Kotlin proxy to bypass the rustls SSL panic on Android.
+            // This allows Tectonic to dynamically download any missing files!
+            val currentProxyPort = getProxyPort()
             val processBuilder = ProcessBuilder(
                 tectonicBinary.absolutePath,
-                "--only-cached",
+                "-w", "http://127.0.0.1:$currentProxyPort/default_bundle_v33.tar",
                 "document.tex"
             )
             processBuilder.directory(workDir)
