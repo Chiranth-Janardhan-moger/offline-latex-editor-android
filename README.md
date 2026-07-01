@@ -1,21 +1,22 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Offline LaTeX Editor for Android
 
-# Run and deploy your AI Studio app
+The most advanced, fast, and fully offline LaTeX editor and compiler available for Android devices. Powered by a native, high-fidelity **Tectonic** engine, this app enables zero-lag editing and seamless local PDF generation without requiring any internet connection.
 
-This contains everything you need to run your app locally.
+## Key Features
 
-View your app in AI Studio: https://ai.studio/apps/959ef3a0-9fe3-48dd-9a08-6e61d5fe2842
+- **True Offline Compilation**: Compiles your `.tex` documents locally on-device. No cloud servers required!
+- **Zero-Lag Code Editor**: Engineered for extreme performance with heavily optimized syntax highlighting, effortlessly handling documents with thousands of lines.
+- **Tectonic Engine**: Uses the modern, robust Tectonic engine designed for flawless document rendering.
+- **Beautiful Material UI**: Minimalist, distraction-free environment for pure productivity.
 
-## Run Locally
+## Why Choose This App?
+If you are looking for an **Android LaTeX editor**, **offline LaTeX compiler**, or simply the fastest way to write and compile LaTeX on your mobile phone, this app is built for you.
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+## How to Install
+Download the latest APK from the [Releases page](https://github.com/Chiranth-Janardhan-moger/offline-latex-editor-android/releases).
 
+## Privacy & Security
+Everything stays on your device. Since compilation happens 100% locally through the Tectonic engine, your proprietary documents are never uploaded to the web.
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
+## License
+MIT License

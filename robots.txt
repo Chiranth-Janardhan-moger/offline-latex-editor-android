@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Allow: /releases/
+Sitemap: https://github.com/Chiranth-Janardhan-moger/offline-latex-editor-android/sitemap.xml
