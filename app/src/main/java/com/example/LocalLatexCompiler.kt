@@ -60,17 +60,7 @@ object LocalLatexCompiler {
             }
         }
         
-        // Extract SSL CA certificates for musl/rustls to fix Android HTTPS downloads
-        val cacertFile = File(workDir, "cacert.pem")
-        if (!cacertFile.exists()) {
-            try {
-                context.assets.open("cacert.pem").use { input ->
-                    cacertFile.outputStream().use { input.copyTo(it) }
-                }
-            } catch (e: Exception) {
-                logBuilder.append("[ERROR] Failed to extract cacert.pem: ${e.localizedMessage}\n")
-            }
-        }
+
         
         // Locate the Tectonic binary in the native libraries directory
         val nativeLibraryDir = context.applicationInfo.nativeLibraryDir
@@ -95,12 +85,10 @@ object LocalLatexCompiler {
             processBuilder.directory(workDir)
             processBuilder.redirectErrorStream(true)
 
-            // Set environment variables for Tectonic's internal operations and SSL fixes
             val env = processBuilder.environment()
             env["HOME"] = workDir.absolutePath
             env["XDG_CACHE_HOME"] = workDir.absolutePath
             env["TMPDIR"] = workDir.absolutePath
-            env["SSL_CERT_FILE"] = cacertFile.absolutePath
             
             val process = processBuilder.start()
             
